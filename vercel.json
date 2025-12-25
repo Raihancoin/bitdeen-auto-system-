@@ -2,19 +2,31 @@
   "version": 2,
   "builds": [
     {
-      "src": "./index.html",
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/public/$1",
+      "headers": {
+        "cache-control": "s-maxage=3600"
+      }
     }
-  ]
-}    "ADMIN_BOT_TOKEN": "7520922050:AAE-bdCNbYj1GBrqHEoPR8VUecXQvXnS4k8",
-    "ADMIN_USER_ID": "6925986776",
-    "LOGO_URL": "https://i.ibb.co/Z1MFj5K7/bitdeen-logo.png",
-    "NODE_ENV": "production"
+  ],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 10,
+      "memory": 1024
+    }
   }
 }
