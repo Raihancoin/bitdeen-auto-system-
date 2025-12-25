@@ -6,35 +6,166 @@
     <title>🚀 Bitdeen (BDN) - Earn Crypto!</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-    <!-- আইকন ফন্ট -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- গুগল ফন্ট -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="notification" class="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notification-text">Success!</span>
+    </div>
+    
+    <div id="app" class="glass-container">
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-wrapper">
+                    <img src="https://i.ibb.co/Z1MFj5K7/bitdeen-logo.png" alt="Bitdeen Logo" class="logo">
+                    <div class="logo-badge">BDN</div>
+                </div>
+                <h1 class="app-title">BITDEEN</h1>
+                <p class="app-subtitle">Earn Crypto Rewards Instantly</p>
+            </div>
+        </div>
         
-        :root {
-            --primary: #FFD700;
-            --primary-dark: #FFAA00;
-            --secondary: #6C63FF;
-            --dark-bg: #0A0A0F;
-            --card-bg: rgba(20, 20, 30, 0.9);
-            --text-light: #FFFFFF;
-            --text-gray: #B0B0C0;
-            --success: #00D26A;
-            --danger: #FF4757;
-            --gradient: linear-gradient(135deg, #FFD700 0%, #FFAA00 50%, #6C63FF 100%);
-            --card-shadow: 0 10px 30px rgba(255, 215, 0, 0.15);
-            --neumorphic-shadow: 8px 8px 16px #0A0A15, -8px -8px 16px #1A1A25;
-        }
+        <div class="balance-card">
+            <div class="balance-label">
+                <i class="fas fa-wallet"></i>
+                TOTAL BALANCE
+            </div>
+            <div class="balance-amount">
+                <span id="token-balance">0</span> BDN
+            </div>
+            
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-value" id="ref-count">0</div>
+                    <div class="stat-label">Referrals</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="boost-level">0</div>
+                    <div class="stat-label">Boost Level</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="multiplier">x1.0</div>
+                    <div class="stat-label">Multiplier</div>
+                </div>
+            </div>
+        </div>
         
-        body {
+        <div class="action-buttons">
+            <button class="action-btn action-btn-primary" id="daily-check">
+                <i class="fas fa-calendar-day btn-icon"></i>
+                <span>Daily Check-In</span>
+                <small>+100 BDN</small>
+            </button>
+            
+            <button class="action-btn action-btn-secondary" id="hourly-claim" disabled>
+                <i class="fas fa-clock btn-icon"></i>
+                <span>Hourly Claim</span>
+                <small id="hourly-timer">Ready in 60:00</small>
+            </button>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <div class="progress-label">
+                    <i class="fas fa-hourglass-half"></i>
+                    Hourly Progress
+                </div>
+                <div class="progress-time" id="progress-timer">60:00</div>
+            </div>
+            <div class="progress-bar-container">
+                <div id="hourly-progress" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <div style="font-size: 14px; color: var(--text-gray); text-align: center; margin-top: 10px;">
+                Claim <span style="color: var(--primary); font-weight: 600;">50 BDN</span> every hour
+            </div>
+        </div>
+        
+        <div class="tasks-section">
+            <h2 class="section-title">
+                <i class="fas fa-tasks"></i>
+                Daily Tasks
+            </h2>
+            <div id="tasks-list" class="tasks-grid">
+                <div class="task-card loading-task">
+                    <div class="task-icon">
+                        <div class="loading"></div>
+                    </div>
+                    <div class="task-name">Loading tasks...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="boost-section">
+            <div class="boost-level">
+                <div class="level-info">
+                    <span class="level-label">Current Boost Level</span>
+                    <span class="level-value">Level <span id="boost-level-display">0</span></span>
+                </div>
+                <div class="multiplier-badge" id="multiplier-display">x1.0</div>
+            </div>
+            
+            <div class="action-buttons" style="margin: 0;">
+                <button class="action-btn" id="free-boost">
+                    <i class="fas fa-bolt btn-icon"></i>
+                    <span>Free Boost</span>
+                    <small>Daily 1x - +50 BDN</small>
+                </button>
+                
+                <button class="action-btn action-btn-primary" id="paid-boost">
+                    <i class="fas fa-chart-line btn-icon"></i>
+                    <span>Upgrade Boost</span>
+                    <small>Cost: <span id="boost-cost">1000</span> BDN</small>
+                </button>
+            </div>
+        </div>
+        
+        <div class="referral-section">
+            <h2 class="section-title">
+                <i class="fas fa-user-friends"></i>
+                Refer & Earn
+            </h2>
+            <p style="color: var(--text-gray); margin-bottom: 20px; text-align: center;">
+                Share your referral link and earn <span style="color: var(--primary); font-weight: 600;">100 BDN</span> for each friend who joins!
+            </p>
+            
+            <div class="referral-link-container">
+                <div class="referral-link" id="ref-link">Loading...</div>
+                <button class="copy-btn" id="copy-ref">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            
+            <button class="action-btn action-btn-secondary" id="share-ref" style="width: 100%; margin-top: 15px;">
+                <i class="fas fa-share-alt btn-icon"></i>
+                <span>Share Referral Link</span>
+            </button>
+        </div>
+        
+        <div class="action-buttons" style="margin-bottom: 30px;">
+            <button class="action-btn" id="airdrop-btn">
+                <i class="fas fa-gift btn-icon"></i>
+                <span>Request Airdrop</span>
+            </button>
+            
+            <button class="action-btn" id="withdraw-btn">
+                <i class="fas fa-coins btn-icon"></i>
+                <span>Withdraw</span>
+                <small>Coming Soon</small>
+            </button>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 Bitdeen (BDN) | All Rights Reserved</p>
+            <p style="font-size: 12px; margin-top: 5px; opacity: 0.7;">Powered by Telegram Mini Apps</p>
+        </div>
+    </div>
+
+    <script type="module" src="index.js"></script>
+</body>
+                </html>        body {
             font-family: 'Poppins', sans-serif;
             background: var(--dark-bg);
             color: var(--text-light);
