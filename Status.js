@@ -1,40 +1,11 @@
-const TelegramBot = require('node-telegram-bot');
-const admin = require('firebase-admin');
-
-const token = '8582457296:AAEuB5SNNRwRch06YOnPQgQVtFqI3KSUfOg'; // ইউজার বট টোকেন
-const bot = new TelegramBot(token, { polling: true });
-
-const serviceAccount = require('./serviceAccountKey.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://bitdeen-a1ebe-default-rtdb.firebaseio.com'
-});
-const db = admin.database();
-
-const MINI_APP_URL = 'https://your-bitdeen-miniapp.vercel.app'; // তোমার Vercel URL
-
-const welcomeKeyboard = {
-  inline_keyboard: [
-    [{ text: '🚀 Open Bitdeen App', web_app: { url: MINI_APP_URL } }]
-  ]
-};
-
-bot.onText(/\/start$/, (msg) => {
-  const chatId = msg.chat.id.toString();
-  db.ref('users/' + chatId).set({
-    balance: 0,
-    referrals: 0,
-    boostLevel: 0,
-    lastDaily: 0,
-    lastHourly: 0,
-    lastFreeBoost: 0
-  }).catch(() => {});
-  bot.sendMessage(chatId, 'স্বাগতম Bitdeen (BDN)-এ! 🚀', { reply_markup: welcomeKeyboard });
-});
-
-bot.onText(/\/start ref_(\d+)/, async (msg, match) => {
-  const chatId = msg.chat.id.toString();
-  const referrerId = match[1];
+export default function handler(req, res) {
+    res.status(200).json({
+        status: 'online',
+        timestamp: Date.now(),
+        version: '2.0.0',
+        message: 'BitDeeN Auto System is running'
+    });
+}  const referrerId = match[1];
 
   if (referrerId === chatId) return bot.sendMessage(chatId, 'সেল্ফ রেফারেল না 😅');
 
