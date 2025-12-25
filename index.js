@@ -1,40 +1,369 @@
-const express = require('express');
-const TelegramBot = require('node-telegram-bot-api');
-const axios = require('axios');
-const moment = require('moment');
-const cors = require('cors');
-require('dotenv').config();
+// Firebase এবং টেলিগ্রাম সেটআপ
+const firebaseConfig = {
+    apiKey: "AIzaSyBxQ4EiH_aTCyJm5_VT0cRSDD97F_ObG1o",
+    authDomain: "bitdeen-a1ebe.firebaseapp.com",
+    databaseURL: "https://bitdeen-a1ebe-default-rtdb.firebaseio.com",
+    projectId: "bitdeen-a1ebe",
+    storageBucket: "bitdeen-a1ebe.firebasestorage.app",
+    messagingSenderId: "957332775205",
+    appId: "1:957332775205:web:e34cc38d4d5282adc43acc",
+    measurementId: "G-FY8TBYBJ58"
+};
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// টেলিগ্রাম ওয়েব অ্যাপ ইনিশিয়ালাইজেশন
+let tg = window.Telegram.WebApp;
+tg.expand();
+tg.enableClosingConfirmation();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
+// ইউজার ডাটা
+let userId = null;
+let data = {
+    balance: 0,
+    referrals: 0,
+    boostLevel: 0,
+    lastDaily: 0,
+    lastHourly: 0,
+    lastFreeBoost: 0
+};
 
-// Firebase Realtime Database URL
-const FIREBASE_DB_URL = 'https://bitdeen-a1ebe-default-rtdb.firebaseio.com';
+// DOM Elements
+const elements = {
+    balance: document.getElementById('token-balance'),
+    refCount: document.getElementById('ref-count'),
+    boostLevel: document.getElementById('boost-level'),
+    boostLevelDisplay: document.getElementById('boost-level-display'),
+    multiplier: document.getElementById('multiplier'),
+    multiplierDisplay: document.getElementById('multiplier-display'),
+    boostCost: document.getElementById('boost-cost'),
+    refLink: document.getElementById('ref-link'),
+    hourlyTimer: document.getElementById('hourly-timer'),
+    progressTimer: document.getElementById('progress-timer'),
+    hourlyProgress: document.getElementById('hourly-progress'),
+    tasksList: document.getElementById('tasks-list'),
+    notification: document.getElementById('notification'),
+    notificationText: document.getElementById('notification-text')
+};
 
-// Telegram Bots
-const userBot = new TelegramBot(process.env.USER_BOT_TOKEN || '8582457296:AAEuB5SNNRwRch06YOnPQgQVtFqI3KSUfOg', { 
-  polling: true 
-});
-
-const adminBot = new TelegramBot(process.env.ADMIN_BOT_TOKEN || '7520922050:AAE-bdCNbYj1GBrqHEoPR8VUecXQvXnS4k8', { 
-  polling: true 
-});
-
-// Firebase Helper Functions
-async function saveToFirebase(path, data) {
-  try {
-    const response = await axios.put(`${FIREBASE_DB_URL}/${path}.json`, data);
-    return response.data;
-  } catch (error) {
-    console.log('Firebase save error:', error.message);
-    return null;
-  }
+// Notification System
+function showNotification(message, type = 'success') {
+    elements.notificationText.textContent = message;
+    
+    if (type === 'error') {
+        elements.notification.style.background = 'linear-gradient(135deg, var(--danger), #FF6B81)';
+    } else if (type === 'warning') {
+        elements.notification.style.background = 'linear-gradient(135deg, var(--primary), #FFAA00)';
+    } else {
+        elements.notification.style.background = 'linear-gradient(135deg, var(--primary), var(--success))';
+    }
+    
+    elements.notification.style.display = 'flex';
+    
+    setTimeout(() => {
+        elements.notification.style.display = 'none';
+    }, 3000);
 }
+
+// Confetti Effect
+function triggerConfetti() {
+    if (typeof confetti !== 'function') return;
+    
+    confetti({
+        particleCount: 200,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFAA00', '#6C63FF', '#FFFFFF']
+    });
+}
+
+// LocalStorage Functions
+function saveToLocalStorage() {
+    const userData = {
+        ...data,
+        userId: userId,
+        lastUpdated: Date.now()
+    };
+    localStorage.setItem('bitdeen_user_data', JSON.stringify(userData));
+}
+
+function loadFromLocalStorage() {
+    const saved = localStorage.getItem('bitdeen_user_data');
+    if (saved) {
+        const savedData = JSON.parse(saved);
+        data = { ...data, ...savedData };
+        updateUI();
+    }
+}
+
+// Generate User ID
+function generateUserId() {
+    if (tg.initDataUnsafe?.user?.id) {
+        return tg.initDataUnsafe.user.id.toString();
+    }
+    
+    // Generate a random ID if not from Telegram
+    const savedId = localStorage.getItem('bitdeen_user_id');
+    if (savedId) return savedId;
+    
+    const newId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('bitdeen_user_id', newId);
+    return newId;
+}
+
+// Update UI
+function updateUI() {
+    const multiplier = 1 + (data.boostLevel * 0.1);
+    elements.balance.textContent = data.balance.toLocaleString();
+    elements.refCount.textContent = data.referrals;
+    elements.boostLevel.textContent = data.boostLevel;
+    elements.boostLevelDisplay.textContent = data.boostLevel;
+    elements.multiplier.textContent = `x${multiplier.toFixed(1)}`;
+    elements.multiplierDisplay.textContent = `x${multiplier.toFixed(1)}`;
+    elements.boostCost.textContent = (1000 * Math.pow(2, data.boostLevel)).toLocaleString();
+    
+    const botUsername = 'bitdeen_bot';
+    elements.refLink.textContent = `https://t.me/${botUsername}?start=ref_${userId}`;
+    
+    updateHourlyProgress();
+}
+
+// Hourly Progress Timer
+function updateHourlyProgress() {
+    const now = Date.now();
+    const lastHourly = data.lastHourly || 0;
+    const diff = (now - lastHourly) / 60000; // minutes
+    const progress = Math.min(diff / 60 * 100, 100);
+    
+    elements.hourlyProgress.style.width = `${progress}%`;
+    
+    const hourlyBtn = document.getElementById('hourly-claim');
+    
+    if (diff >= 60) {
+        hourlyBtn.disabled = false;
+        elements.hourlyTimer.textContent = '+50 BDN';
+        elements.progressTimer.textContent = 'READY!';
+    } else {
+        hourlyBtn.disabled = true;
+        const mins = Math.floor(60 - diff);
+        const secs = Math.floor((60 - diff % 1) * 60);
+        const timeText = `${mins}:${secs.toString().padStart(2, '0')}`;
+        elements.hourlyTimer.textContent = `Ready in ${timeText}`;
+        elements.progressTimer.textContent = timeText;
+    }
+}
+
+// Load Tasks
+async function loadTasks() {
+    try {
+        const response = await fetch('/api/tasks');
+        const result = await response.json();
+        
+        if (result.success && result.tasks) {
+            displayTasks(result.tasks);
+        } else {
+            displayDefaultTasks();
+        }
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+        displayDefaultTasks();
+    }
+}
+
+function displayTasks(tasks) {
+    elements.tasksList.innerHTML = '';
+    
+    tasks.forEach(task => {
+        const taskCard = document.createElement('div');
+        taskCard.className = 'task-card';
+        taskCard.innerHTML = `
+            <div class="task-icon">
+                <i class="fas fa-${task.icon || 'star'}"></i>
+            </div>
+            <div class="task-name">${task.name}</div>
+            <div class="task-reward">+${task.reward} BDN</div>
+            <button class="copy-btn" style="padding: 8px 15px; font-size: 14px;">Complete</button>
+        `;
+        
+        taskCard.querySelector('button').onclick = () => completeTask(task);
+        elements.tasksList.appendChild(taskCard);
+    });
+}
+
+function displayDefaultTasks() {
+    const defaultTasks = [
+        { id: 1, name: "Join Telegram", reward: 100, icon: "paper-plane" },
+        { id: 2, name: "Follow Twitter", reward: 150, icon: "twitter" },
+        { id: 3, name: "Subscribe YouTube", reward: 200, icon: "youtube" },
+        { id: 4, name: "Invite Friends", reward: 500, icon: "user-friends" },
+        { id: 5, name: "Daily Login", reward: 300, icon: "calendar-check" }
+    ];
+    
+    displayTasks(defaultTasks);
+}
+
+// Task Completion
+function completeTask(task) {
+    const reward = Math.floor(task.reward * (1 + data.boostLevel * 0.1));
+    data.balance += reward;
+    saveToLocalStorage();
+    updateUI();
+    triggerConfetti();
+    showNotification(`+${reward} BDN! Task Completed!`);
+}
+
+// Event Handlers
+function setupEventHandlers() {
+    // Daily Check-In
+    document.getElementById('daily-check').onclick = () => {
+        const now = Date.now();
+        if (!data.lastDaily || now - data.lastDaily > 86400000) {
+            const reward = Math.floor(100 * (1 + data.boostLevel * 0.1));
+            data.balance += reward;
+            data.lastDaily = now;
+            saveToLocalStorage();
+            updateUI();
+            triggerConfetti();
+            showNotification(`+${reward} BDN! Daily Claimed!`);
+        } else {
+            showNotification('Already claimed today!', 'warning');
+        }
+    };
+    
+    // Hourly Claim
+    document.getElementById('hourly-claim').onclick = () => {
+        const now = Date.now();
+        if (!data.lastHourly || now - data.lastHourly >= 3600000) {
+            const reward = Math.floor(50 * (1 + data.boostLevel * 0.1));
+            data.balance += reward;
+            data.lastHourly = now;
+            saveToLocalStorage();
+            updateUI();
+            triggerConfetti();
+            showNotification(`+${reward} BDN! Hourly Claimed!`);
+        } else {
+            showNotification('Not ready yet!', 'warning');
+        }
+    };
+    
+    // Free Boost
+    document.getElementById('free-boost').onclick = () => {
+        const now = Date.now();
+        if (!data.lastFreeBoost || now - data.lastFreeBoost > 86400000) {
+            data.lastHourly = now - 3600000; // +1 hour
+            data.balance += 50;
+            data.lastFreeBoost = now;
+            saveToLocalStorage();
+            updateUI();
+            triggerConfetti();
+            showNotification('+50 BDN & +1 Hour Time Boost!');
+        } else {
+            showNotification('Free Boost Already Used Today!', 'warning');
+        }
+    };
+    
+    // Paid Boost
+    document.getElementById('paid-boost').onclick = () => {
+        const cost = 1000 * Math.pow(2, data.boostLevel);
+        if (data.balance >= cost) {
+            data.balance -= cost;
+            data.boostLevel += 1;
+            saveToLocalStorage();
+            updateUI();
+            triggerConfetti();
+            showNotification(`Boost Level ${data.boostLevel}! +10% Bonus Activated!`);
+        } else {
+            showNotification('Not Enough BDN!', 'error');
+        }
+    };
+    
+    // Copy Referral Link
+    document.getElementById('copy-ref').onclick = () => {
+        const link = elements.refLink.textContent;
+        navigator.clipboard.writeText(link).then(() => {
+            showNotification('Referral link copied!');
+        }).catch(() => {
+            const textArea = document.createElement('textarea');
+            textArea.value = link;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showNotification('Referral link copied!');
+        });
+    };
+    
+    // Share Referral
+    document.getElementById('share-ref').onclick = () => {
+        const link = elements.refLink.textContent;
+        const text = `🚀 Join Bitdeen and Earn Free BDN Tokens! Earn crypto rewards daily with simple tasks! ${link}`;
+        
+        if (tg.platform !== 'unknown') {
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+        } else {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'BitDeeN - Earn Crypto',
+                    text: text,
+                    url: link
+                });
+            } else {
+                navigator.clipboard.writeText(text);
+                showNotification('Link copied to clipboard!');
+            }
+        }
+        
+        const reward = Math.floor(100 * (1 + data.boostLevel * 0.1));
+        data.balance += reward;
+        data.referrals += 1;
+        saveToLocalStorage();
+        updateUI();
+        triggerConfetti();
+        showNotification(`Referral Shared! +${reward} BDN Bonus!`);
+    };
+    
+    // Airdrop
+    document.getElementById('airdrop-btn').onclick = () => {
+        showNotification('Airdrop Requested! Processing...');
+        triggerConfetti();
+    };
+    
+    // Withdraw
+    document.getElementById('withdraw-btn').onclick = () => {
+        showNotification('Withdraw Coming Soon!', 'warning');
+    };
+}
+
+// Initialize App
+function initApp() {
+    userId = generateUserId();
+    
+    // Load initial data
+    loadFromLocalStorage();
+    
+    // Setup event handlers
+    setupEventHandlers();
+    
+    // Load tasks
+    loadTasks();
+    
+    // Start hourly timer
+    setInterval(updateHourlyProgress, 1000);
+    
+    // Initial UI update
+    updateUI();
+    
+    // Set theme
+    tg.setHeaderColor('#0A0A0F');
+    tg.setBackgroundColor('#0A0A0F');
+    
+    showNotification('Welcome to BitDeeN! Start earning now!');
+}
+
+// Start the app when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+      }}
 
 async function getFromFirebase(path) {
   try {
