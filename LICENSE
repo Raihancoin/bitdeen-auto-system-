@@ -1,21 +1,28 @@
-MIT License
 
-Copyright (c) 2025 Bitdeen 
+## ✅ **ডিপ্লয়মেন্ট স্টেপস:**
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+```bash
+# 1. সব ফাইল তৈরি করুন
+mkdir -p bitdeen-auto-system/public
+mkdir -p bitdeen-auto-system/api
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+# 2. ফাইলগুলো কপি করুন
+# উপরের কোডগুলো respective ফাইলে পেস্ট করুন
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# 3. GitHub এ পুশ করুন
+cd bitdeen-auto-system
+git init
+git add .
+git commit -m "Initial commit with complete solution"
+git branch -M main
+git remote add origin https://github.com/Raihancoin/bitdeen-auto-system-.git
+git push -u origin main
+
+# 4. Vercel এ ডিপ্লয় করুন
+# https://vercel.com/new
+# GitHub repository select করুন
+# Environment variables সেট করুন
+# Deploy করুনAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
