@@ -8,33 +8,376 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #FFD700; --primary-dark: #FFAA00; --secondary: #6C63FF;
+            --dark-bg: #0A0A0F; --card-bg: rgba(20,20,30,0.9); --text-light: #FFFFFF;
+            --gradient: linear-gradient(135deg, #FFD700, #FFAA00, #6C63FF);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--primary);
+            box-shadow: 0 0 30px var(--primary);
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .balance-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 2px solid rgba(255,215,0,0.3);
+        }
+        .balance-amount {
+            font-size: 48px;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+        }
+        .btn {
+            background: var(--gradient);
+            color: #000;
+            border: none;
+            padding: 18px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            width: 100%;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .btn:hover { transform: translateY(-3px); }
+        .btn:active { transform: translateY(1px); }
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .progress-bar {
+            height: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress {
+            height: 100%;
+            background: var(--gradient);
+            width: 0%;
+            transition: width 0.5s;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gradient);
+            color: #000;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-weight: 600;
+            display: none;
+            z-index: 1000;
+        }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .balance-amount { font-size: 36px; }
+            .btn { padding: 15px; }
+        }
+    </style>
 </head>
 <body>
-    <div id="notification" class="notification">
-        <i class="fas fa-check-circle"></i>
-        <span id="notification-text">Success!</span>
-    </div>
-    
-    <div id="app" class="glass-container">
+    <div class="container">
         <div class="header">
-            <div class="logo-container">
-                <div class="logo-wrapper">
-                    <img src="https://i.ibb.co/Z1MFj5K7/bitdeen-logo.png" alt="Bitdeen Logo" class="logo">
-                    <div class="logo-badge">BDN</div>
-                </div>
-                <h1 class="app-title">BITDEEN</h1>
-                <p class="app-subtitle">Earn Crypto Rewards Instantly</p>
-            </div>
+            <img src="https://i.ibb.co/Z1MFj5K7/bitdeen-logo.png" alt="Bitdeen Logo" class="logo">
+            <h1>BITDEEN</h1>
+            <p style="color: #aaa;">Earn Crypto Rewards Instantly</p>
         </div>
         
         <div class="balance-card">
-            <div class="balance-label">
-                <i class="fas fa-wallet"></i>
-                TOTAL BALANCE
+            <div style="color: #aaa; margin-bottom: 10px;">TOTAL BALANCE</div>
+            <div class="balance-amount" id="balance">0 BDN</div>
+            <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                <div>
+                    <div style="font-size: 24px; color: var(--primary);" id="refCount">0</div>
+                    <div style="font-size: 14px; color: #aaa;">Referrals</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; color: var(--primary);" id="boostLevel">0</div>
+                    <div style="font-size: 14px; color: #aaa;">Boost Level</div>
+                </div>
             </div>
-            <div class="balance-amount">
-                <span id="token-balance">0</span> BDN
+        </div>
+        
+        <button class="btn" id="dailyBtn">
+            <i class="fas fa-calendar-day"></i> Daily Check-In (+100 BDN)
+        </button>
+        
+        <button class="btn" id="hourlyBtn" disabled>
+            <i class="fas fa-clock"></i> Hourly Claim (+50 BDN) - <span id="timer">60:00</span>
+        </button>
+        
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        
+        <button class="btn" id="freeBoost">
+            <i class="fas fa-bolt"></i> Free Boost (Daily)
+        </button>
+        
+        <button class="btn" id="paidBoost">
+            <i class="fas fa-chart-line"></i> Upgrade Boost (<span id="boostCost">1000</span> BDN)
+        </button>
+        
+        <div style="background: var(--card-bg); border-radius: 20px; padding: 20px; margin: 20px 0;">
+            <h3 style="color: var(--primary); margin-bottom: 15px;">
+                <i class="fas fa-tasks"></i> Tasks
+            </h3>
+            <div id="tasks"></div>
+        </div>
+        
+        <button class="btn" onclick="shareReferral()">
+            <i class="fas fa-share-alt"></i> Share & Earn (+100 BDN)
+        </button>
+        
+        <div style="text-align: center; margin-top: 30px; color: #666; font-size: 14px;">
+            © 2024 Bitdeen (BDN) | Powered by Telegram Mini Apps
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">Success!</div>
+
+    <script>
+        // Simple LocalStorage-based app
+        let userData = {
+            balance: 1000,
+            referrals: 0,
+            boostLevel: 0,
+            lastDaily: 0,
+            lastHourly: 0,
+            lastFreeBoost: 0
+        };
+        
+        // Load from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('bitdeen_data');
+            if (saved) {
+                userData = JSON.parse(saved);
+            }
+            updateUI();
+        }
+        
+        // Save to localStorage
+        function saveData() {
+            localStorage.setItem('bitdeen_data', JSON.stringify(userData));
+        }
+        
+        // Update UI
+        function updateUI() {
+            document.getElementById('balance').textContent = userData.balance.toLocaleString() + ' BDN';
+            document.getElementById('refCount').textContent = userData.referrals;
+            document.getElementById('boostLevel').textContent = userData.boostLevel;
+            document.getElementById('boostCost').textContent = (1000 * Math.pow(2, userData.boostLevel)).toLocaleString();
+            
+            // Update hourly timer
+            updateTimer();
+        }
+        
+        // Timer function
+        function updateTimer() {
+            const now = Date.now();
+            const lastHourly = userData.lastHourly || 0;
+            const diff = (now - lastHourly) / 60000; // minutes
+            const progress = Math.min(diff / 60 * 100, 100);
+            
+            document.getElementById('progress').style.width = progress + '%';
+            
+            const hourlyBtn = document.getElementById('hourlyBtn');
+            if (diff >= 60) {
+                hourlyBtn.disabled = false;
+                hourlyBtn.innerHTML = '<i class="fas fa-clock"></i> Hourly Claim (+50 BDN) - READY!';
+                document.getElementById('timer').textContent = 'READY!';
+            } else {
+                hourlyBtn.disabled = true;
+                const mins = Math.floor(60 - diff);
+                const secs = Math.floor((60 - diff % 1) * 60);
+                const timeText = mins + ':' + secs.toString().padStart(2, '0');
+                hourlyBtn.innerHTML = '<i class="fas fa-clock"></i> Hourly Claim (+50 BDN) - ' + timeText;
+                document.getElementById('timer').textContent = timeText;
+            }
+        }
+        
+        // Load tasks
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const data = await response.json();
+                displayTasks(data.tasks);
+            } catch (error) {
+                // Fallback tasks
+                displayTasks([
+                    { name: "Join Telegram", reward: 100 },
+                    { name: "Follow Twitter", reward: 150 },
+                    { name: "Subscribe YouTube", reward: 200 }
+                ]);
+            }
+        }
+        
+        function displayTasks(tasks) {
+            const tasksDiv = document.getElementById('tasks');
+            tasksDiv.innerHTML = '';
+            tasks.forEach(task => {
+                const taskBtn = document.createElement('button');
+                taskBtn.className = 'btn';
+                taskBtn.style.margin = '5px 0';
+                taskBtn.style.background = 'rgba(108, 99, 255, 0.9)';
+                taskBtn.innerHTML = `${task.name} (+${task.reward} BDN)`;
+                taskBtn.onclick = () => completeTask(task);
+                tasksDiv.appendChild(taskBtn);
+            });
+        }
+        
+        function completeTask(task) {
+            const reward = Math.floor(task.reward * (1 + userData.boostLevel * 0.1));
+            userData.balance += reward;
+            saveData();
+            updateUI();
+            showNotification('+' + reward + ' BDN from task!');
+            confetti({ particleCount: 100, spread: 70 });
+        }
+        
+        // Notification
+        function showNotification(msg) {
+            const notif = document.getElementById('notification');
+            notif.textContent = msg;
+            notif.style.display = 'block';
+            setTimeout(() => notif.style.display = 'none', 3000);
+        }
+        
+        // Event Listeners
+        document.getElementById('dailyBtn').onclick = () => {
+            const now = Date.now();
+            if (!userData.lastDaily || now - userData.lastDaily > 86400000) {
+                const reward = Math.floor(100 * (1 + userData.boostLevel * 0.1));
+                userData.balance += reward;
+                userData.lastDaily = now;
+                saveData();
+                updateUI();
+                showNotification('+' + reward + ' BDN daily reward!');
+                confetti({ particleCount: 150, spread: 90 });
+            } else {
+                showNotification('Already claimed today!');
+            }
+        };
+        
+        document.getElementById('hourlyBtn').onclick = () => {
+            const now = Date.now();
+            if (!userData.lastHourly || now - userData.lastHourly >= 3600000) {
+                const reward = Math.floor(50 * (1 + userData.boostLevel * 0.1));
+                userData.balance += reward;
+                userData.lastHourly = now;
+                saveData();
+                updateUI();
+                showNotification('+' + reward + ' BDN hourly reward!');
+                confetti({ particleCount: 100, spread: 80 });
+            } else {
+                showNotification('Not ready yet!');
+            }
+        };
+        
+        document.getElementById('freeBoost').onclick = () => {
+            const now = Date.now();
+            if (!userData.lastFreeBoost || now - userData.lastFreeBoost > 86400000) {
+                userData.lastHourly = now - 3600000; // +1 hour
+                userData.balance += 50;
+                userData.lastFreeBoost = now;
+                saveData();
+                updateUI();
+                showNotification('+50 BDN & +1 hour boost!');
+                confetti({ particleCount: 120, spread: 85 });
+            } else {
+                showNotification('Free boost used today!');
+            }
+        };
+        
+        document.getElementById('paidBoost').onclick = () => {
+            const cost = 1000 * Math.pow(2, userData.boostLevel);
+            if (userData.balance >= cost) {
+                userData.balance -= cost;
+                userData.boostLevel += 1;
+                saveData();
+                updateUI();
+                showNotification('Boost upgraded to level ' + userData.boostLevel + '!');
+                confetti({ particleCount: 200, spread: 100 });
+            } else {
+                showNotification('Not enough BDN!');
+            }
+        };
+        
+        function shareReferral() {
+            const botUsername = 'bitdeen_bot';
+            const userId = 'user_' + Date.now();
+            const link = 'https://t.me/' + botUsername + '?start=ref_' + userId;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'BitDeeN - Earn Crypto',
+                    text: 'Join BitDeeN and earn free BDN tokens!',
+                    url: link
+                });
+            } else {
+                navigator.clipboard.writeText(link);
+                showNotification('Link copied to clipboard!');
+            }
+            
+            const reward = Math.floor(100 * (1 + userData.boostLevel * 0.1));
+            userData.balance += reward;
+            userData.referrals += 1;
+            saveData();
+            updateUI();
+            confetti({ particleCount: 150, spread: 90 });
+        }
+        
+        // Initialize
+        loadData();
+        loadTasks();
+        setInterval(updateTimer, 1000);
+        
+        // Telegram Web App
+        if (typeof Telegram !== 'undefined') {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            Telegram.WebApp.setHeaderColor('#0A0A0F');
+            Telegram.WebApp.setBackgroundColor('#0A0A0F');
+        }
+    </script>
+</body>
+</html>                <span id="token-balance">0</span> BDN
             </div>
             
             <div class="stats-container">
