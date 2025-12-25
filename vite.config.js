@@ -1,11 +1,9 @@
-import { defineConfig } from 'vite';
+FIREBASE_API_KEY=AIzaSyBxQ4EiH_aTCyJm5_VT0cRSDD97F_ObG1o
+FIREBASE_AUTH_DOMAIN=bitdeen-a1ebe.firebaseapp.com
+FIREBASE_DATABASE_URL=https://bitdeen-a1ebe-default-rtdb.firebaseio.com
+FIREBASE_PROJECT_ID=bitdeen-a1ebe
+FIREBASE_STORAGE_BUCKET=bitdeen-a1ebe.firebasestorage.app
+FIREBASE_MESSAGING_SENDER_ID=957332775205
+FIREBASE_APP_ID=1:957332775205:web:e34cc38d4d5282adc43acc
 
-export default defineConfig({
-  server: {
-    port: 7700,
-    open: true
-  },
-  build: {
-    outDir: 'dist'
-  }
-});
+NODE_ENV=production
