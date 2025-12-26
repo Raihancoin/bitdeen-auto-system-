@@ -1,28 +1,29 @@
 {
   "version": 2,
-  "buildCommand": null,
-  "outputDirectory": "public",
-  "framework": "static",
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 5,
-      "memory": 512
+  "builds": [
+    {
+      "src": "public/**/*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=3600"
-      }
+      "dest": "/api/$1"
     },
     {
       "src": "/(.*)",
       "dest": "/public/$1"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 10,
+      "memory": 1024
+    }
   }
 }
