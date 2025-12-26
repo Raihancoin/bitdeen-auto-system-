@@ -1,21 +1,14 @@
 {
   "name": "bitdeen-auto-system",
-  "version": "3.0.0",
-  "type": "module",
-  "description": "BitDeeN Token Auto System",
+  "version": "1.0.0",
+  "description": "BitDeeN Telegram Mini App",
   "main": "public/index.html",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build required'",
-    "start": "echo 'No start required'",
-    "deploy": "vercel --prod"
+    "dev": "echo 'Development mode'",
+    "build": "echo 'Build completed'"
   },
   "dependencies": {
-    "firebase": "^10.7.0",
-    "axios": "^1.6.2"
-  },
-  "devDependencies": {
-    "vercel": "^34.0.0"
+    "firebase": "^10.7.0"
   },
   "engines": {
     "node": ">=18.0.0"
